@@ -1,23 +1,71 @@
 name: rrss
 channels:
   - defaults
+  - conda-forge
 dependencies:
+  - alabaster=0.7.16
+  - annotated-types=0.6.0
+  - anyio=4.6.2
+  - asyncer=0.0.8
+  - babel=2.16.0
+  - brotli-python=1.0.9
   - bzip2=1.0.8
   - ca-certificates=2024.12.31
+  - certifi=2024.12.14
+  - charset-normalizer=3.3.2
+  - colorama=0.4.6
+  - docutils=0.17.1
   - expat=2.6.4
+  - fastapi=0.112.2
+  - fire=0.7.0
+  - greenlet=3.1.1
+  - idna=3.7
+  - imagesize=1.4.1
+  - importlib-metadata=8.5.0
+  - iniconfig=1.1.1
+  - jinja2=3.1.4
   - libffi=3.4.4
   - libmpdec=4.0.0
+  - loguru=0.7.2
+  - markupsafe=2.1.3
   - openssl=3.0.15
+  - packaging=24.2
   - pip=24.2
+  - pluggy=1.5.0
+  - pydantic=2.10.3
+  - pydantic-core=2.27.1
+  - pygments=2.15.1
+  - pysocks=1.7.1
+  - pytest=7.4.4
   - python=3.13.1
   - python_abi=3.13
+  - requests=2.32.3
   - setuptools=75.1.0
+  - six=1.16.0
+  - sniffio=1.3.0
+  - snowballstemmer=2.2.0
+  - sphinx=4.4.0
+  - sphinxcontrib-applehelp=1.0.2
+  - sphinxcontrib-devhelp=1.0.2
+  - sphinxcontrib-htmlhelp=2.0.0
+  - sphinxcontrib-jsmath=1.0.1
+  - sphinxcontrib-qthelp=1.0.3
+  - sphinxcontrib-serializinghtml=1.1.5
+  - sqlalchemy=2.0.37
   - sqlite=3.45.3
+  - starlette=0.38.2
+  - termcolor=2.1.0
   - tk=8.6.14
+  - typing-extensions=4.12.2
+  - typing_extensions=4.12.2
   - tzdata=2024b
+  - urllib3=2.3.0
   - vc=14.40
   - vs2015_runtime=14.42.34433
   - wheel=0.44.0
+  - win32_setctime=1.1.0
+  - win_inet_pton=1.1.0
   - xz=5.4.6
+  - zipp=3.21.0
   - zlib=1.2.13
 prefix: C:\Users\17561\.conda\envs\rrss

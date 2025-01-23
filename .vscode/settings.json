@@ -1,0 +1,6 @@
+{
+    "mypy-type-checker.args": [
+        "--enable-incomplete-feature=NewGenericSyntax",
+        "--disable-error-code=import-untyped"
+    ]
+}
