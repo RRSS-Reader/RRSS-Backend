@@ -1,4 +1,5 @@
 import pytest
+from typing import Any
 from pydantic import ValidationError
 from extensions.event import types
 
@@ -29,3 +30,15 @@ class TestEventType:
                     event_name=name,
                     data={"some_data_key": "some_data_value"},
                 )
+
+
+class TestEventHandlerType:
+    def test_invalid_handler_name(self, invalid_p_event_handler_list) -> None:
+
+        for cls in invalid_p_event_handler_list:
+            with pytest.raises(ValidationError):
+                types.EventHandlerModel.model_validate(cls())
+
+    def test_valid_event_handler_protocol(self, valid_p_event_handler_list) -> None:
+        for cls in valid_p_event_handler_list:
+            types.EventHandlerModel.model_validate(cls())

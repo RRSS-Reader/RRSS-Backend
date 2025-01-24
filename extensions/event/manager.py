@@ -1,13 +1,29 @@
 from loguru import logger as _logger
-from . import types
+from pydantic import BaseModel, validate_call
+from .types import Event, EventHandlerModel
+from utils.types import RRSSEntityIdField
 
 
-class _SingleEventMgr:
-    name: str
-    handlers_dict: dict[]
+class _SingleEventMgr(BaseModel):
+    name: RRSSEntityIdField
+    """Name of the event this SingleEventManager should process"""
+
+    handler_list: list[EventHandlerModel] = []
+    """Dictionary to store handlers of this event"""
 
     def __init__(self, name: str):
         self.name = name
+
+    def add(self, handler: EventHandlerModel):
+        self.handler_list.append(handler)
+
+    def remove(
+        self,
+        registrant: RRSSEntityIdField,
+        identifier: RRSSEntityIdField,
+    ):
+        # TODO
+        pass
 
 
 class EventManager:

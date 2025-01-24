@@ -1,34 +1,42 @@
 from typing import Annotated, Protocol, runtime_checkable, Any, TypeVar
 from pydantic import BaseModel, Field, ConfigDict
-from utils.types import DotSeparatedSnakeCaseNameField
+from utils.types import RRSSEntityIdField
 
 
 class Event[EventDataType = Any](BaseModel):
     # enable data to be any valid python object
     model_config = ConfigDict(arbitrary_types_allowed=True)
 
-    sender: DotSeparatedSnakeCaseNameField | None = None
+    sender: RRSSEntityIdField | None = None
     """Sender of this event, default to `None`"""
 
-    event_name: DotSeparatedSnakeCaseNameField
+    event_name: RRSSEntityIdField
     """Name of this event, determine what handlers will be triggered"""
 
     data: EventDataType
     """Data passed to the handlers of this event"""
 
 
-T = TypeVar("T", covariant=True)
+HandlerDataType = TypeVar("HandlerDataType", covariant=True, default=Any)
 
 
-@runtime_checkable
-class EventHandler(Protocol[T]):
-    registrant: str
+class EventHandlerModel[HandlerDataType](BaseModel):
+    # allow validate from Python object attrs
+    model_config = ConfigDict(from_attributes=True)
+
+    registrant: RRSSEntityIdField
     """
     Dot-separated snake-case name for entity who register this handler.
     
     E.g.: `rrss.sys`
     """
 
-    def handler(data: T) -> Any: ...
+    identifier: RRSSEntityIdField
+    """
+    Identifier of this event handler, should be unique across all handlers 
+    registered by the same registrant.
+    """
 
-    """Actual handler method to be called when event received"""
+    def handler(data: HandlerDataType) -> Any:
+        """Actual handler method to be called when event received"""
+        ...

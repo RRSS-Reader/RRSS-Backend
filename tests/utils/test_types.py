@@ -10,3 +10,8 @@ class TestDottedSnakeCaseKeyDict:
         for name in invalid_dsk_names:
             with pytest.raises(ValidationError):
                 typed_dict[name] = "some_value"
+
+    def test_valid_key(self, valid_dsk_names):
+        typed_dict = types.DottedSnakeCaseKeyDict()
+        for name in valid_dsk_names:
+            typed_dict[name] = "some_value"
