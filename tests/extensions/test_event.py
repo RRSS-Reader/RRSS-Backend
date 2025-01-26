@@ -37,8 +37,8 @@ class TestEventHandlerType:
 
         for cls in invalid_p_event_handler_list:
             with pytest.raises(ValidationError):
-                types.EventHandlerModel.model_validate(cls())
+                types.EventHandler.model_validate(cls())
 
     def test_valid_event_handler_protocol(self, valid_p_event_handler_list) -> None:
         for cls in valid_p_event_handler_list:
-            types.EventHandlerModel.model_validate(cls())
+            types.EventHandler.model_validate(cls())

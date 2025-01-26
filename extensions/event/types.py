@@ -1,4 +1,5 @@
-from typing import Annotated, Protocol, runtime_checkable, Any, TypeVar
+from typing import Annotated, Protocol, runtime_checkable, Any, TypeVar, Generic
+from abc import abstractmethod
 from pydantic import BaseModel, Field, ConfigDict
 from utils.types import RRSSEntityIdField
 
@@ -17,10 +18,7 @@ class Event[EventDataType = Any](BaseModel):
     """Data passed to the handlers of this event"""
 
 
-HandlerDataType = TypeVar("HandlerDataType", covariant=True, default=Any)
-
-
-class EventHandlerModel[HandlerDataType](BaseModel):
+class EventHandler[HandlerDataType](BaseModel):
     # allow validate from Python object attrs
     model_config = ConfigDict(from_attributes=True)
 
@@ -39,4 +37,4 @@ class EventHandlerModel[HandlerDataType](BaseModel):
 
     def handler(data: HandlerDataType) -> Any:
         """Actual handler method to be called when event received"""
-        ...
+        return None

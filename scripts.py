@@ -45,5 +45,3 @@ def run_command(name: str):
 
 if __name__ == "__main__":
     fire.Fire(run_command)
-
-a: str = 1

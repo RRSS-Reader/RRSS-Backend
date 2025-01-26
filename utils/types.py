@@ -1,7 +1,7 @@
-from typing import Annotated, Dict, Any, TypeVar
-from pydantic import Field, RootModel, validate_call
+from typing import Annotated, Dict, Any, TypeVar, override
+from pydantic import Field, RootModel, TypeAdapter, validate_call
 
-type RRSSEntityIdField = Annotated[str, Field(pattern=r"^([a-z_]+?)(\.[a-z_]+?)*$")]
+RRSSEntityIdField = Annotated[str, Field(pattern=r"^([a-z_]+?)(\.[a-z_]+?)*$")]
 """
 Dot-separated snake-case variable name format. 
 
@@ -9,16 +9,25 @@ E.g.: `rrss.sys.plug.rate_limiter`
 """
 
 
-class DottedSnakeCaseKeyDict(RootModel):
-    root: dict[RRSSEntityIdField, Any] = dict()
+class RRSSEntityIdKeyDict[VT](dict[RRSSEntityIdField, VT]):
+    """
+    Custom dict that limit key type to `RRSSEntityId` format.
 
-    def __iter__(self):
-        return self.root.__iter__()
+    Provide runtime check for keys type and static type check for value type `VT`
+    """
 
+    # type adapter used to provide runtime check of dict key
+    type_adapter = TypeAdapter(dict[RRSSEntityIdField, VT])
+
+    @override
+    def __init__(self):
+        pass
+
+    @override
     @validate_call
-    def __getitem__(self, key: RRSSEntityIdField):
-        return self.root.__getitem__(key)
+    def __setitem__(self, key: RRSSEntityIdField, value: VT) -> None:
+        super().__setitem__(key, value)
 
-    @validate_call
-    def __setitem__(self, key: RRSSEntityIdField, value: Any):
-        self.root.__setitem__(key, value)
+    @override
+    def validate_dict_key(self):
+        self.type_adapter.validate_python(self)
