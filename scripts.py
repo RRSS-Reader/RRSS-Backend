@@ -6,7 +6,7 @@ from loguru import logger
 
 SCRIPTS: dict[str, str | list[str]] = {
     "code.format": "black .",
-    "code.check": "mypy " "--disable-error-code=import-untyped " ".",
+    "code.check": "mypy " ".",
     "code.test": "pytest tests",
     "env.export": "conda env export --no-builds -f environment.yml",
 }
