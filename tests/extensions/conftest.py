@@ -2,6 +2,8 @@ import pytest
 
 from tests.fixtures.types import *
 
+from extensions.event.types import EventHandler
+
 
 @pytest.fixture
 def invalid_p_event_handler_list() -> list[type]:
@@ -46,3 +48,22 @@ def valid_p_event_handler_list() -> list[type]:
             pass
 
     return [TestClass1, TestClass2]
+
+
+@pytest.fixture
+def event_handlers_sample_list() -> list[EventHandler]:
+    class EventHandler1(EventHandler):
+        def __init__(self):
+            super().__init__(registrant="rrss.test", identifier="sync.1")
+
+        def handler(self, data):
+            return f"Sync handler with data: {data}"
+
+    class EventHandler2(EventHandler):
+        def __init__(self):
+            super().__init__(registrant="rrss.test", identifier="async.1")
+
+        async def handler(self, data):
+            return f"Async handler with data: {data}"
+
+    return [EventHandler1(), EventHandler2()]

@@ -1,6 +1,6 @@
-from typing import Any
+from typing import Any, TypeVar, Generic
 from loguru import logger as _logger
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 from asyncer import create_task_group
 
 from .types import Event, EventHandler
@@ -10,6 +10,8 @@ from utils.asyncers import ensure_asyncify
 
 
 class _SingleEventMgr[EventDataType](BaseModel):
+    model_config = ConfigDict(arbitrary_types_allowed=True)
+
     name: RRSSEntityIdField
     """Name of the event this `SingleEventManager` instance should process"""
 
@@ -24,6 +26,7 @@ class _SingleEventMgr[EventDataType](BaseModel):
     """
 
     def __init__(self, name: str):
+        super().__init__(name=name)
         self.name = name
 
     def add(self, handler: EventHandler[EventDataType]) -> None:
@@ -90,7 +93,7 @@ class _SingleEventMgr[EventDataType](BaseModel):
 
         async with create_task_group() as task_group:
             for handler_model in self.handlers():
-                task_group.soonify(ensure_asyncify(handler_model.handler))(data)
+                task_group.soonify(ensure_asyncify(handler_model.handler))(data=data)
                 _logger.debug(f"Handler added to task: {handler_model}")
 
     def remove(

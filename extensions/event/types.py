@@ -1,4 +1,4 @@
-from typing import Annotated, Protocol, runtime_checkable, Any, TypeVar, Generic
+from typing import Annotated, Protocol, runtime_checkable, Any, ClassVar
 from abc import abstractmethod
 from pydantic import BaseModel, Field, ConfigDict
 from utils.types import RRSSEntityIdField

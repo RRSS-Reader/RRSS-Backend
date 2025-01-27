@@ -11,6 +11,8 @@ def invalid_dsk_names() -> list[str]:
         ".dot.at.begining",
         "some.other&.invalid.charater",
         "invalid:char",
+        "Capital",
+        "has.Capital.letters",
         "..",
     ]
 
@@ -25,4 +27,5 @@ def valid_dsk_names() -> list[str]:
         "some_other.valid_.name",
         "v.a.l.i.d.n.a.n.e",
         "_.this.is__.also.valid",
+        "1.number.is.also.ok",
     ]

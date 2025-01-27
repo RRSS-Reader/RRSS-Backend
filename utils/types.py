@@ -1,7 +1,7 @@
 from typing import Annotated, Dict, Any, TypeVar, override
-from pydantic import Field, RootModel, TypeAdapter, validate_call
+from pydantic import Field, ConfigDict, TypeAdapter, validate_call
 
-RRSSEntityIdField = Annotated[str, Field(pattern=r"^([a-z_]+?)(\.[a-z_]+?)*$")]
+RRSSEntityIdField = Annotated[str, Field(pattern=r"^([a-z0-9_]+?)(\.[a-z0-9_]+?)*$")]
 """
 Dot-separated snake-case variable name format. 
 
@@ -17,11 +17,9 @@ class RRSSEntityIdKeyDict[VT](dict[RRSSEntityIdField, VT]):
     """
 
     # type adapter used to provide runtime check of dict key
-    type_adapter = TypeAdapter(dict[RRSSEntityIdField, VT])
-
-    @override
-    def __init__(self):
-        pass
+    type_adapter = TypeAdapter(
+        dict[RRSSEntityIdField, VT], config=ConfigDict(arbitrary_types_allowed=True)
+    )
 
     @override
     @validate_call
