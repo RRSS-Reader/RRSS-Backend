@@ -42,3 +42,8 @@ class TestEventHandlerType:
     def test_valid_event_handler_protocol(self, valid_p_event_handler_list) -> None:
         for cls in valid_p_event_handler_list:
             types.EventHandler.model_validate(cls())
+
+
+class TestEventSingleHandler:
+    # TODO
+    pass

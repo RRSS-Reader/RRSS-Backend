@@ -35,6 +35,9 @@ class EventHandler[HandlerDataType](BaseModel):
     registered by the same registrant.
     """
 
+    def __repr__(self):
+        return f"<EventHandler reg={self.registrant} id={self.identifier}>"
+
     def handler(data: HandlerDataType) -> Any:
         """Actual handler method to be called when event received"""
         return None
