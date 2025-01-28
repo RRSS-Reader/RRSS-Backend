@@ -4,9 +4,9 @@ from pydantic import BaseModel, Field, ConfigDict
 from utils.types import RRSSEntityIdField
 
 
-class Event[EventDataType = Any](BaseModel):
+class Event[EventDataType](BaseModel):
     # enable data to be any valid python object
-    model_config = ConfigDict(arbitrary_types_allowed=True)
+    model_config = ConfigDict(from_attributes=True, arbitrary_types_allowed=True)
 
     sender: RRSSEntityIdField | None = None
     """Sender of this event, default to `None`"""

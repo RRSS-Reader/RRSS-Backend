@@ -1,4 +1,5 @@
 import pytest
+import anyio
 from typing import Any
 from pydantic import ValidationError
 from extensions.event import types as event_types
@@ -47,8 +48,10 @@ class TestEventHandlerType:
 
 
 class TestEventSingleHandler:
-    # TODO
     def test_event_adding(self, event_handlers_sample_list) -> None:
+        """
+        Test event adding, existence checking, and removing.
+        """
         # create single event mgr
         mgr = _SingleEventMgr[str]("rrss.test.test_event_1")
 
@@ -90,3 +93,41 @@ class TestEventSingleHandler:
 
         # check handlers() generator
         assert len([i for i in mgr.handlers()]) == len(event_handlers_sample_list)
+
+    async def test_event_emitting(self, anyio_backend):
+        ret1: int = 0
+        ret2: int = 1
+        mgr = _SingleEventMgr[int]("rrss.test.emit_test")
+
+        class EventHandler1(event_types.EventHandler[int]):
+            def __init__(self):
+                super().__init__(registrant="rrss.test", identifier="rrss.test.1")
+
+            def handler(self, data):
+                nonlocal ret1
+                ret1 = data + 1
+
+        class EventHandler2(event_types.EventHandler[int]):
+            def __init__(self):
+                super().__init__(registrant="rrss.test", identifier="rrss.test.2")
+
+            async def handler(self, data):
+                nonlocal ret2
+                await anyio.sleep(0.2)
+                ret2 = data + 2
+
+        mgr.add(EventHandler1())
+        mgr.add(EventHandler2())
+
+        await mgr.emit(3)
+
+        # check if two handlers were both triggered
+        assert ret1 == 4
+        assert ret2 == 5
+
+        mgr.remove("rrss.test", "rrss.test.2")
+
+        await mgr.emit(10)
+
+        assert ret1 == 11
+        assert ret2 == 5
