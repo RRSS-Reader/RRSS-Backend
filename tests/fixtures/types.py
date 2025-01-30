@@ -29,3 +29,13 @@ def valid_dsk_names() -> list[str]:
         "_.this.is__.also.valid",
         "1.number.is.also.ok",
     ]
+
+
+@fixture
+def valid_snake_case_names() -> list[str]:
+    return ["some_snake_case", "ok", "1", "__ok", "__", "ok__"]
+
+
+@fixture
+def invalid_snake_case_names() -> list[str]:
+    return ["some-name", "", "Not_ok", ".not_ok", ".", "this:not_ok"]
