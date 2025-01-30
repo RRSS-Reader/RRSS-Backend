@@ -1,0 +1,4 @@
+{
+  "duplicated_translation_namespace": "A new translation resources with lng code \"{{resource.lng}}\" is trying to use the same namespace \"{{resource.ns}}\" of an existing resources. (New resource location: {{resource.location}})",
+  "translation_resource_not_found": "Could not find translation resources with language \"{{lng}}\" and namespace \"{{ns}}\""
+}
