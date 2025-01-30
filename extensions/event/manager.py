@@ -1,6 +1,6 @@
-from typing import Any, TypeVar, Generic
+from typing import Any
 from loguru import logger as _logger
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, validate_call
 from asyncer import create_task_group
 
 from .types import Event, EventHandler
@@ -126,9 +126,18 @@ class _SingleEventMgr[EventDataType](BaseModel):
 
 
 class EventManager:
-    event_handler_mgr_dict: dict[str, _SingleEventMgr]
+    event_handler_mgr_dict: RRSSEntityIdKeyDict[_SingleEventMgr[Any]]
 
-    # TODO
+    def __init__(self):
+        self.event_handler_mgr_dict = RRSSEntityIdKeyDict()
+
+    @validate_call
+    def emit(self, event: Event[Any]):
+        try:
+            single_event_mgr = self.event_handler_mgr_dict[event.event_name]
+        except KeyError as e:
+            raise event_errors.EventNotRegistered
+        # TODO
 
 
 _event_manager_instance = EventManager()

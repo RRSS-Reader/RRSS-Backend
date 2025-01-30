@@ -9,8 +9,6 @@ class RRSSEventSystemError(RRSSBaseError):
 
 
 class HandlerNotFound(RRSSEventSystemError):
-    registrant: str | None = None
-    identifier: str | None = None
 
     def __init__(
         self,
@@ -24,7 +22,6 @@ class HandlerNotFound(RRSSEventSystemError):
 
 
 class DuplicatedHandlerID(RRSSEventSystemError):
-    duplicated_identifier: str | None = None
 
     def __init__(
         self,
@@ -33,3 +30,13 @@ class DuplicatedHandlerID(RRSSEventSystemError):
     ):
         super().__init__(title)
         self.duplicated_identifier = duplicated_identifier
+
+
+class EventNotRegistered(RRSSEventSystemError):
+    """
+    Raise when a trying to emit and event with non-exists event name
+    """
+
+    def __init__(self, title="event_not_registered", event_name: str | None = None):
+        super().__init__(title)
+        self.event_name = event_name
