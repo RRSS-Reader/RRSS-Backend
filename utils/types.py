@@ -3,6 +3,8 @@ from pydantic import Field, ConfigDict, TypeAdapter, validate_call
 
 SnakeCaseField = Annotated[str, Field(pattern=r"^[a-z0-9_]+?$")]
 
+SnakeCaseValidator = TypeAdapter(SnakeCaseField)
+
 RRSSEntityIdField = Annotated[str, Field(pattern=r"^([a-z0-9_]+?)(\.[a-z0-9_]+?)*$")]
 """
 Dot-separated snake-case variable name format. 

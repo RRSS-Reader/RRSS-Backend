@@ -1,6 +1,9 @@
-from pydantic import BaseModel, ConfigDict
+from typing import Annotated
+from pydantic import BaseModel, ConfigDict, Field
 
 from utils.types import SnakeCaseField
+
+LngCodeField = Annotated[str, Field(pattern=r"^[a-z]{2}(-[A-Z]{2})?$")]
 
 
 class TranslationText(BaseModel):

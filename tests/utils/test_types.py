@@ -26,6 +26,19 @@ class TestDottedSnakeCaseKeyDict:
             typed_dict[name] = "some_value"  # type: ignore
 
 
+class TestKeyCheckedDict:
+    def test_invalid_key(self, invalid_dsk_names):
+        typed_dict = util_types.KeyCheckedDict[util_types.RRSSEntityIdField, Any]()
+        for name in invalid_dsk_names:
+            with pytest.raises(ValidationError):
+                typed_dict[name] = "some_value"
+
+    def test_valid_key(self, valid_dsk_names):
+        typed_dict = util_types.KeyCheckedDict[util_types.RRSSEntityIdField, Any]()
+        for name in valid_dsk_names:
+            typed_dict[name] = "some_value"
+
+
 class TestSnakeCaseField:
     adapter = TypeAdapter(util_types.SnakeCaseField)
 
