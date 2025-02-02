@@ -32,11 +32,20 @@ class TranslationText(BaseModel):
 
 
 class TransResourceMetaData(BaseModel):
+    """
+    Data class to store metadata info of a translation resource.
+    
+    To create a new metadata instance, `lng`, `ns` and `location` should be provided. 
+    Check out field docstring for more info about each attributes.
+    """
     model_config = ConfigDict(arbitrary_types_allowed=True)
 
     lng: LngCodeField
+    """Language code of this translation resource, e.g.:`en-US`, `de`"""
     ns: SnakeCaseField
+    """Namespace of this resource, must be snake-case named, e.g.: `test_namespace`"""
     location: Traversable
+    """A `Traversable` that directly point to the resource .json file"""
 
     def __hash__(self):
         """

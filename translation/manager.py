@@ -50,7 +50,7 @@ class _TranslationResourceManager:
         Return JSON content from translation resource file if exists
 
         Raises:
-            `TranslationResourceNotFound`
+            `TranslationResourceNotFound` when the resources is not found.
         """
         res = self._get_resource_metadata(lng=lng, ns=ns)
         return res.location.read_text()
@@ -71,6 +71,7 @@ class _TranslationResourceManager:
                 Note that the resources should be directly located in the anchor package
 
             add_to_res:
+                Means "add to resources".
                 If `add_to_res == True`, try add the newly discovered resources to
                 this manager, if failed, ignore corresponding resource
         """

@@ -34,6 +34,14 @@ trans_mgr.register(...)
 > This approach is not recommended, the "Scan Locale Directory" method should be used in most cases,
 > which would be introduced below.
 
+A new `TransResourceMetaData` instance should be created before adding to the manager.
+
+```python
+new_resource = TransResourceMetaData(lng=..., ns=..., location=...)
+```
+
+Check out type annotations and docstrings of `TransResourceMetaData` for more info.
+
 To manually register a new translation resource, you could use `register()` method of manager instance:
 
 ```
@@ -70,4 +78,23 @@ as long as the location of locale directory is known.
 ```python
 trans_mgr.discover(anchor=".assets.locale")
 trans_mgr.discover(anchor=".assets.locale", add_to_res=False)  # will only return list of res, do not add to mgr instance
+```
+
+> The parameter `anchor` should direclty point to the location of locale directory, and will be passed to `importlib.resources.files()`
+
+### Details
+
+Translation Manager use `importlib.resources` internally to manage translation resources.
+
+- [importlib.resources.Anchor](https://docs.python.org/3/library/importlib.resources.html#importlib.resources.Anchor)
+- [importlib.resources.files()](https://docs.python.org/3/library/importlib.resources.html#importlib.resources.files)
+
+# Get Resources
+
+> You could skip reading this part **if you only cares how to register(add) new translation resources**, e.g.: You are developing a RRSS plugin and need to provide i18n for this plugin.
+
+Use `get_resource_json()` to retrieve registered resources.
+
+```python
+json_str: str = get_resource_json(lng="en", ns="some_namespace")
 ```
