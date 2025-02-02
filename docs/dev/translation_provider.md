@@ -8,16 +8,66 @@ When we talking about _frontend_ and _backend_ of RRSS translation system:
 - **Frontend**: Fetch translation resources from backend, then properly display the translation result to user.
 - **Backend**: Manage translation resources, provide endpoints for frontend to retrieve corresponding resources.
 
-# Frontend
+## Frontend
 
 Frontend should use packages [i18next](https://www.i18next.com/) as the frontend translation framework.
 
 Additionally, `i18next-fetch-backend` could be used to retrieve translation resources from backend endpoints.
 
-# Backend
+## Backend
 
-A global `TranslationManager` is provided to allow RRSS or other plugins to register new translation resources. This manager is also responsible for loading and caching the corresponding resources when needed.
+A global Translation Manager _(powered by `tranlation.manager._TranslationResourceManager`)_ is provided to allow RRSS or other plugins to register new translation resources. This manager is also responsible for loading and caching the corresponding resources when needed.
 
-## Resource Registration
+# Backend Resources Registration
 
-The basic resources unit is `namespace`, which shares the identical meaning in `i18next`.
+## Access Manager Instance
+
+To directly access translation manager instance, you could:
+
+```python
+from translation.manager import instance as trans_mgr
+trans_mgr.register(...)
+```
+
+## Manually Register Resources
+
+> This approach is not recommended, the "Scan Locale Directory" method should be used in most cases,
+> which would be introduced below.
+
+To manually register a new translation resource, you could use `register()` method of manager instance:
+
+```
+resource = TransResourceMetaData(lng="en-US", ns="common", location=Traversable())
+trans_mgr.register(resource)
+```
+
+> Check out docstring of `register()` for more info.
+
+## Scan Locale Directory
+
+In most cases, all relevant translation resources is organized in a locale directory,
+which should have the following structure:
+
+```plaintext
+[lng_code]/
+└── [namespace].json
+```
+
+Following is a possible locale directory structure for a plugin called `my_rrss_plugin`:
+
+```plaintext
+en-US/
+├── my_rrss_plugin__common.json
+└── my_rrss_plugin__custom_errs.json
+de/
+├── my_rrss_plugin__common.json
+└── my_rrss_plugin__custom_errs.json
+```
+
+`discover()` method could be used to scan and add all translation resources in a locale folder to the manager
+as long as the location of locale directory is known.
+
+```python
+trans_mgr.discover(anchor=".assets.locale")
+trans_mgr.discover(anchor=".assets.locale", add_to_res=False)  # will only return list of res, do not add to mgr instance
+```

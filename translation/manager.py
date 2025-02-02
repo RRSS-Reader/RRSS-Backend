@@ -1,39 +1,27 @@
 from typing import Set, Collection
 from importlib import resources as iptlib_res
-from importlib.abc import Traversable, TraversableResources
+from importlib.resources.abc import Traversable
 
-from pydantic import BaseModel, ValidationError, Field, validate_call
+from pydantic import BaseModel, ValidationError, ConfigDict, Field, validate_call
 from loguru import logger as _logger
 
 from utils import types as util_types
 from . import types as trans_types
 from . import errors as trans_errs
-
-
-class _TransResourceMetaData(BaseModel):
-    lng: trans_types.LngCodeField
-    ns: util_types.SnakeCaseField
-    location: Traversable
-
-    def __hash__(self):
-        """
-        Hash method override, ensure two metadata object has the same hash value
-        if both their `lng` and `ns` is the same.
-        """
-        return hash((self.lng, self.ns))
+from .types import TransResourceMetaData
 
 
 # TODO: test needed
 class _TranslationResourceManager:
     resources: dict[
         trans_types.LngCodeField,
-        dict[util_types.SnakeCaseField, _TransResourceMetaData],
+        dict[util_types.SnakeCaseField, TransResourceMetaData],
     ]
 
     def __init__(self):
         self.resources = dict()
 
-    def register(self, resource: _TransResourceMetaData) -> None:
+    def register(self, resource: TransResourceMetaData) -> None:
         """
         Register a new translation resource
         """
@@ -42,12 +30,14 @@ class _TranslationResourceManager:
             raise trans_errs.DuplicatedTranslationNamespace(resource=resource)
         lng_res_dict[resource.ns] = resource
 
+        _logger.debug(f"Translation resource registered: {resource!r}")
+
     @validate_call
     def _get_resource_metadata(
         self,
         lng: trans_types.LngCodeField,
         ns: trans_types.SnakeCaseField,
-    ) -> _TransResourceMetaData:
+    ) -> TransResourceMetaData:
         try:
             return self.resources[lng][ns]
         except KeyError as e:
@@ -69,7 +59,7 @@ class _TranslationResourceManager:
         self,
         anchor: iptlib_res.Anchor,
         add_to_res: bool = True,
-    ) -> list[_TransResourceMetaData]:
+    ) -> list[TransResourceMetaData]:
         """
         Use `importlib.resource` to discover new translation resources
 
@@ -88,7 +78,7 @@ class _TranslationResourceManager:
         _logger.debug(f"Start discover translation resources with anchor: {anchor}")
 
         # store newly discovered translation resources
-        discovered_resources: list[_TransResourceMetaData] = list()
+        discovered_resources: list[TransResourceMetaData] = list()
 
         def process_lng_dir(lng_code: trans_types.LngCodeField, dir: Traversable):
             nonlocal discovered_resources
@@ -107,7 +97,7 @@ class _TranslationResourceManager:
 
                 # create new resources
                 discovered_resources.append(
-                    _TransResourceMetaData(lng=lng_code, ns=namespace, location=t)
+                    TransResourceMetaData(lng=lng_code, ns=namespace, location=t)
                 )
 
         # traverse
@@ -129,9 +119,10 @@ class _TranslationResourceManager:
                 try:
                     self.register(res)
                 except trans_errs.DuplicatedTranslationNamespace as e:
-                    _logger.debug(
+                    _logger.warning(
                         "Duplicated translation namespace found in discovery process, "
-                        "automatically skipped."
+                        "automatically skipped. "
+                        f"lng={res.lng!r}, ns={res.ns!r}"
                     )
                     continue
 

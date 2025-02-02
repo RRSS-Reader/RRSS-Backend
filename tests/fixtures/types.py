@@ -38,4 +38,14 @@ def valid_snake_case_names() -> list[str]:
 
 @fixture
 def invalid_snake_case_names() -> list[str]:
-    return ["some-name", "", "Not_ok", ".not_ok", ".", "this:not_ok"]
+    return ["some-name", "", "Not_ok", ".not_ok", ".", "this:not_ok", "with.dot"]
+
+
+@fixture
+def invalid_lng_code() -> list[str]:
+    return ["eng", "EN", "english", "en_US", "123", "en-US-123", "en-usa"]
+
+
+@fixture
+def valid_lng_code() -> list[str]:
+    return ["en", "fr", "es", "de", "zh", "en-US", "fr-CA", "es-MX", "de-CH", "zh-CN"]

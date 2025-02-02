@@ -1,7 +1,5 @@
 from exceptions.general import RRSSBaseError
-
 from . import types as trans_type
-from .manager import _TransResourceMetaData
 
 
 class TranslationSystemError(RRSSBaseError):
@@ -9,10 +7,11 @@ class TranslationSystemError(RRSSBaseError):
 
 
 class DuplicatedTranslationNamespace(TranslationSystemError):
+
     def __init__(
         self,
         title="duplicated_translation_namespace",
-        resource: _TransResourceMetaData | None = None,
+        resource: trans_type.TransResourceMetaData | None = None,
     ):
         super().__init__(title)
 
