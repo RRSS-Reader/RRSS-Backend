@@ -88,13 +88,26 @@ class _SingleEventMgr[EventDataType](BaseModel):
             for handler in handler_list:
                 yield handler
 
-    async def emit(self, data: EventDataType) -> None:
-        _logger.info(f"Emit event: {self.name}")
+    async def emit(self, event: Event[EventDataType]) -> None:
+        """
+        Emit an event, execute all handlers managed by this _SingleEventMgr.
+
+        About Handlers:
+            Handlers could be sync or async function.
+            Sync function handlers will first be converted into async function using `ensure_asyncify()`,
+            then all handlers will be gathered into a task group and executed.
+
+            About sync-to-async conversion, check out `ensure_asyncify()` function.
+        """
+
+        _logger.info(f"Emit event: {self.name!r}")
 
         async with create_task_group() as task_group:
             for handler_model in self.handlers():
-                task_group.soonify(ensure_asyncify(handler_model.handler))(data=data)
+                task_group.soonify(ensure_asyncify(handler_model.handler))(data=event)
                 _logger.debug(f"Handler added to task: {handler_model}")
+
+        _logger.info(f"Event emit finished: {self.name!r}")
 
     def remove(
         self, registrant: RRSSEntityIdField, identifier: RRSSEntityIdField
@@ -132,23 +145,40 @@ class EventManager:
         self.event_handler_mgr_dict = RRSSEntityIdKeyDict()
 
     @validate_call
-    def emit(self, event: Event[Any]):
+    async def emit(self, event: Event[Any]):
+        """
+        Emit an event which is managed by this EventManager.
+
+        Args:
+            event:
+                The event object. This object is used to:
+                1. Determine which event will be emitted.
+                2. Be passed to handlers as the only parameter.
+
+                This event object will be validated using Pydantic.
+
+        Raises:
+            EventNotRegistered: Could not found corresponding event name.
+            ValidationError: Event validation failed.
+        """
+
         try:
             single_event_mgr = self.event_handler_mgr_dict[event.event_name]
         except KeyError as e:
             raise event_errors.EventNotRegistered
-        # TODO
+
+        await single_event_mgr.emit(event)
 
 
-_event_manager_instance = EventManager()
+instance = EventManager()
 
 
 def get_instance():
-    return _event_manager_instance
+    return instance
 
 
 def restart_manager():
-    global _event_manager_instance
+    global instance
     _logger.debug("Restart RRSS event manager...")
-    _event_manager_instance = EventManager()
+    instance = EventManager()
     _logger.info("RRSS event manager has been restarted")
