@@ -3,8 +3,8 @@ import anyio
 from typing import Any
 from pydantic import ValidationError
 from extensions.event import types as event_types
-from extensions.event.manager import _SingleEventMgr
 from extensions.event import errors as event_errs
+from extensions.event.manager import _SingleEventMgr
 
 
 class TestEventType:
@@ -67,7 +67,11 @@ class TestEventSingleHandler:
         class CustomEventHandler(event_types.EventHandler):
 
             def __init__(self):
-                super().__init__(registrant="rrss.test.another", identifier="sync.1")
+                super().__init__(
+                    event_name="some_name",
+                    registrant="rrss.test.another",
+                    identifier="sync.1",
+                )
 
             def handler(self, data):
                 return f"Sync handler with data: {data}"
@@ -101,25 +105,33 @@ class TestEventSingleHandler:
 
         class EventHandler1(event_types.EventHandler[int]):
             def __init__(self):
-                super().__init__(registrant="rrss.test", identifier="rrss.test.1")
+                super().__init__(
+                    event_name="some_name",
+                    registrant="rrss.test",
+                    identifier="rrss.test.1",
+                )
 
-            def handler(self, data):
+            def handler(self, event):
                 nonlocal ret1
-                ret1 = data + 1
+                ret1 = event.data + 1
 
         class EventHandler2(event_types.EventHandler[int]):
             def __init__(self):
-                super().__init__(registrant="rrss.test", identifier="rrss.test.2")
+                super().__init__(
+                    event_name="some_name",
+                    registrant="rrss.test",
+                    identifier="rrss.test.2",
+                )
 
-            async def handler(self, data):
+            async def handler(self, event):
                 nonlocal ret2
                 await anyio.sleep(0.2)
-                ret2 = data + 2
+                ret2 = event.data + 2
 
         mgr.add(EventHandler1())
         mgr.add(EventHandler2())
 
-        await mgr.emit(3)
+        await mgr.emit(event_types.Event(event_name="unnecessary", data=3))
 
         # check if two handlers were both triggered
         assert ret1 == 4
@@ -127,7 +139,7 @@ class TestEventSingleHandler:
 
         mgr.remove("rrss.test", "rrss.test.2")
 
-        await mgr.emit(10)
+        await mgr.emit(event_types.Event(event_name="unnecessary", data=10))
 
         assert ret1 == 11
         assert ret2 == 5

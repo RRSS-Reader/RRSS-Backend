@@ -22,6 +22,11 @@ class EventHandler[HandlerDataType](BaseModel):
     # allow validate from Python object attrs
     model_config = ConfigDict(from_attributes=True)
 
+    event_name: RRSSEntityIdField
+    """
+    Event name of this handler
+    """
+
     registrant: RRSSEntityIdField
     """
     Dot-separated snake-case name for entity who register this handler.
@@ -36,8 +41,8 @@ class EventHandler[HandlerDataType](BaseModel):
     """
 
     def __repr__(self):
-        return f"<EventHandler reg={self.registrant} id={self.identifier}>"
+        return f"<EventHandler[{self.event_name}] reg={self.registrant} id={self.identifier}>"
 
-    def handler(self, data: HandlerDataType) -> Any:
+    def handler(self, event: Event[HandlerDataType]) -> Any:
         """Actual handler method to be called when event received"""
         return None

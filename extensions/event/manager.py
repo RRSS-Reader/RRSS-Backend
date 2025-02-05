@@ -5,7 +5,7 @@ from asyncer import create_task_group
 
 from .types import Event, EventHandler
 from . import errors as event_errors
-from utils.types import RRSSEntityIdField, RRSSEntityIdKeyDict
+from utils.types import RRSSEntityIdField, RRSSEntityIdKeyDict, SnakeCaseField
 from utils.asyncers import ensure_asyncify
 
 
@@ -104,15 +104,25 @@ class _SingleEventMgr[EventDataType](BaseModel):
 
         async with create_task_group() as task_group:
             for handler_model in self.handlers():
-                task_group.soonify(ensure_asyncify(handler_model.handler))(data=event)
+                task_group.soonify(ensure_asyncify(handler_model.handler))(event=event)
                 _logger.debug(f"Handler added to task: {handler_model}")
 
         _logger.info(f"Event emit finished: {self.name!r}")
 
     def remove(
-        self, registrant: RRSSEntityIdField, identifier: RRSSEntityIdField
+        self,
+        registrant: RRSSEntityIdField,
+        identifier: RRSSEntityIdField | None,
     ) -> EventHandler[EventDataType]:
-        """Remove an existing handler by registrant and identifier"""
+        """
+        Remove an existing handler by registrant and identifier
+
+        Args:
+            registrant:
+                Registrant ID
+            identifier:
+                Identifier ID, if `None`, will try to remove all handlers registered by the `registrant`
+        """
         # registrant not exists
         try:
             handler_list_of_registrant = self.handler_dict[registrant]
@@ -120,6 +130,10 @@ class _SingleEventMgr[EventDataType](BaseModel):
             raise event_errors.HandlerNotFound(
                 registrant=registrant, identifier=identifier
             )
+
+        # remove all
+        if identifier is None:
+            handler_list_of_registrant.clear()
 
         # remove based on identifier
         for i in range(len(handler_list_of_registrant)):
@@ -140,6 +154,12 @@ class _SingleEventMgr[EventDataType](BaseModel):
 
 class EventManager:
     event_handler_mgr_dict: RRSSEntityIdKeyDict[_SingleEventMgr[Any]]
+    """
+    Store all _SingleEventMgr instance used by this manager.
+    
+    Key is the name of the event, should be a valid RRSS entity ID.
+    Value is the corresponding single event manager.
+    """
 
     def __init__(self):
         self.event_handler_mgr_dict = RRSSEntityIdKeyDict()
@@ -161,19 +181,95 @@ class EventManager:
             EventNotRegistered: Could not found corresponding event name.
             ValidationError: Event validation failed.
         """
-
-        try:
-            single_event_mgr = self.event_handler_mgr_dict[event.event_name]
-        except KeyError as e:
-            raise event_errors.EventNotRegistered
-
+        single_event_mgr = self._try_get_single_mgr(event_name=event.event_name)
         await single_event_mgr.emit(event)
+
+    @validate_call
+    def add_event(self, event_name: RRSSEntityIdField):
+        """
+        Add a new event to this manager.
+
+        Handlers could only be added to an event after this event been added using this method.
+
+        Raises:
+            ValidationError
+        """
+        self.event_handler_mgr_dict.setdefault(event_name, _SingleEventMgr(event_name))
+
+    def has_event(self, event_name: str) -> bool:
+        """
+        Check if an event is added to this manager
+        """
+        return event_name in self.event_handler_mgr_dict
+
+    @validate_call
+    def add_handler(self, handler: EventHandler):
+        """Add a new handler"""
+        single_event_mgr = self._try_get_single_mgr(handler.event_name)
+        single_event_mgr.add(handler=handler)
+
+        _logger.debug(f"New handler added: {handler}")
+
+    def has_handler(self, handler: EventHandler):
+        pass
+
+    @validate_call
+    def remove_handler(self, handler: EventHandler):
+        """
+        Remove a single handler
+
+        Note that it's not required to pass the identical `handler` object which used when adding,
+        this method will use the attributes of received `handler` to find the handler that
+        need to be remove.
+
+        Example:
+
+            handler: EventHandler
+            mgr.add_event(handler.event_name)
+            mgr.add_handler(handler=handler)
+            mgr.remove_handler(
+                handler=EventHandler(
+                    event_name=handler.event_name,
+                    registrant=handler.registrant,
+                    identifier=registrant.identifier,
+                )
+            )
+        """
+        single_mgr = self._try_get_single_mgr(event_name=handler.event_name)
+        single_mgr.remove(registrant=handler.registrant, identifier=handler.identifier)
+
+    @validate_call
+    def remove_all_by_registrant(self, registrant: RRSSEntityIdField):
+        """Remove all handlers with specific registrant"""
+        for single_mgr in self._single_managers():
+            try:
+                single_mgr.remove(registrant=registrant, identifier=None)
+            except event_errors.HandlerNotFound:
+                continue
+
+    def _try_get_single_mgr(self, event_name: RRSSEntityIdField):
+        """
+        Check event existence and return corresponding `_SingleEventMgr` if exists
+        """
+        if not self.has_event(event_name=event_name):
+            raise event_errors.EventNotRegistered(event_name=event_name)
+
+        return self.event_handler_mgr_dict[event_name]
+
+    def _single_managers(self):
+        for mgr in self.event_handler_mgr_dict.values():
+            yield mgr
+
+    # TODO: Test needed
 
 
 instance = EventManager()
 
 
 def get_instance():
+    """
+    Get the singleton instance of event manager
+    """
     return instance
 
 

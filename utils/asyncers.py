@@ -28,7 +28,7 @@ def ensure_asyncify[
     """
     Return the received function object,
     asyncify the function if it's not a coroutine function (using `asyncer` package)
-    
+
     Check out [Asyncer Docs](https://asyncer.tiangolo.com/tutorial/install/) for more info.
     """
     if not iscoroutinefunction(func):

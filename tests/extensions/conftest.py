@@ -17,11 +17,13 @@ def invalid_p_event_handler_list() -> list[type]:
         identifier: str = ""
 
     class TestClass2:
+        event_name: str = "some_name"
         registrant: str = ""
         identifier: str = ""
         extra_field: int = 4
 
     class TestClass3:
+        event_name: str = "some_name"
         registrant: str = ""
         identifier: str = ""
         handler: int = 1
@@ -33,6 +35,7 @@ def invalid_p_event_handler_list() -> list[type]:
 @pytest.fixture
 def valid_p_event_handler_list() -> list[type]:
     class TestClass1:
+        event_name: str = "some_name"
         registrant: str = "some_thing"
         identifier: str = "some_other.id"
 
@@ -40,6 +43,7 @@ def valid_p_event_handler_list() -> list[type]:
             pass
 
     class TestClass2:
+        event_name: str = "some_name"
         registrant: str = "sdf"
         identifier: str = "dfhs"
         extra: int = 3
@@ -54,14 +58,18 @@ def valid_p_event_handler_list() -> list[type]:
 def event_handlers_sample_list() -> list[EventHandler]:
     class EventHandler1(EventHandler):
         def __init__(self):
-            super().__init__(registrant="rrss.test", identifier="sync.1")
+            super().__init__(
+                event_name="some_name", registrant="rrss.test", identifier="sync.1"
+            )
 
         def handler(self, data):
             return f"Sync handler with data: {data}"
 
     class EventHandler2(EventHandler):
         def __init__(self):
-            super().__init__(registrant="rrss.test", identifier="async.1")
+            super().__init__(
+                event_name="some_name", registrant="rrss.test", identifier="async.1"
+            )
 
         async def handler(self, data):
             return f"Async handler with data: {data}"
