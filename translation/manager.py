@@ -11,7 +11,6 @@ from . import errors as trans_errs
 from .types import TransResourceMetaData
 
 
-# TODO: test needed
 class _TranslationResourceManager:
     resources: dict[
         trans_types.LngCodeField,
@@ -127,7 +126,6 @@ class _TranslationResourceManager:
                     )
                     continue
 
-        # TODO
         return discovered_resources
 
 

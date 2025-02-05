@@ -18,6 +18,12 @@ Additionally, `i18next-fetch-backend` could be used to retrieve translation reso
 
 A global Translation Manager _(powered by `tranlation.manager._TranslationResourceManager`)_ is provided to allow RRSS or other plugins to register new translation resources. This manager is also responsible for loading and caching the corresponding resources when needed.
 
+## Diagram
+
+The overall translation system structure is shown in the diagram below:
+
+[![](https://github.com/user-attachments/assets/a0197f4a-7dee-497e-a91d-3f4b9d23de20)](https://excalidraw.com/#json=vdgrFF_Fzm7XQJRT1_PQt,s5uenLyyQKTEKkhUtSgXsQ)
+
 # Backend Resources Registration
 
 ## Access Manager Instance
