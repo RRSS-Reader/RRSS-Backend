@@ -55,11 +55,13 @@ def valid_p_event_handler_list() -> list[type]:
 
 
 @pytest.fixture
-def event_handlers_sample_list() -> list[EventHandler]:
+def event_handlers_sample_list(request) -> list[EventHandler]:
+    event_name = getattr(request, "param", "default_event")
+
     class EventHandler1(EventHandler):
         def __init__(self):
             super().__init__(
-                event_name="some_name", registrant="rrss.test", identifier="sync.1"
+                event_name=event_name, registrant="rrss.test", identifier="sync.1"
             )
 
         def handler(self, data):
@@ -68,7 +70,7 @@ def event_handlers_sample_list() -> list[EventHandler]:
     class EventHandler2(EventHandler):
         def __init__(self):
             super().__init__(
-                event_name="some_name", registrant="rrss.test", identifier="async.1"
+                event_name=event_name, registrant="rrss.test", identifier="async.1"
             )
 
         async def handler(self, data):

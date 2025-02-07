@@ -1,10 +1,12 @@
+from typing import cast
 import pytest
 import anyio
 from typing import Any
 from pydantic import ValidationError
 from extensions.event import types as event_types
 from extensions.event import errors as event_errs
-from extensions.event.manager import _SingleEventMgr
+from extensions.event.types import Event, EventHandler
+from extensions.event.manager import _SingleEventMgr, EventManager
 
 
 class TestEventType:
@@ -143,3 +145,105 @@ class TestEventSingleHandler:
 
         assert ret1 == 11
         assert ret2 == 5
+
+
+class TestEventManager:
+    @pytest.fixture(autouse=True)
+    def setup(self):
+        self.mgr = EventManager()
+
+    def test_add_event(self):
+        self.mgr.add_event("rrss.test.test_event")
+        assert self.mgr.has_event("rrss.test.test_event")
+
+    def test_add_duplicate_event(self):
+        self.mgr.add_event("rrss.test.test_event")
+        self.mgr.add_event("rrss.test.test_event")
+        assert self.mgr.has_event("rrss.test.test_event")
+
+    @pytest.mark.parametrize(
+        "event_handlers_sample_list",
+        ["rrss.test.handler_test"],
+        indirect=True,
+    )
+    def test_add_handler(self, event_handlers_sample_list):
+        event_name = "rrss.test.handler_test"
+
+        self.mgr.add_event(event_name)
+
+        for handler in event_handlers_sample_list:
+            self.mgr.add_handler(handler)
+
+        assert self.mgr.has_event(event_name)
+
+        for handler in event_handlers_sample_list:
+            handler = cast(event_types.EventHandler, handler)
+            assert self.mgr._try_get_single_mgr(event_name).has(
+                handler.registrant, handler.identifier
+            )
+
+    async def test_emit_event(self, anyio_backend):
+        event_name = "rrss.test.emit_test"
+        self.mgr.add_event(event_name)
+
+        ret = {"value": 0}
+
+        class EventHandler1(event_types.EventHandler[int]):
+            def __init__(self):
+                super().__init__(
+                    event_name=event_name,
+                    registrant="rrss.test",
+                    identifier="rrss.test.1",
+                )
+
+            def handler(self, event):
+                ret["value"] = event.data + 1
+
+        handler = EventHandler1()
+        self.mgr.add_handler(handler)
+
+        await self.mgr.emit(event_types.Event(event_name=event_name, data=10))
+        assert ret["value"] == 11
+
+    @pytest.mark.parametrize(
+        "event_handlers_sample_list",
+        ["rrss.test.remove_handler"],
+        indirect=True,
+    )
+    def test_remove_handler(self, event_handlers_sample_list):
+        event_name = "rrss.test.remove_handler"
+        self.mgr.add_event(event_name)
+
+        handler = event_handlers_sample_list[0]
+        handler = cast(event_types.EventHandler, handler)
+        self.mgr.add_handler(handler)
+
+        assert self.mgr._try_get_single_mgr(event_name).has(
+            handler.registrant, handler.identifier
+        )
+
+        self.mgr.remove_handler(handler)
+
+        assert not self.mgr._try_get_single_mgr(event_name).has(
+            handler.registrant, handler.identifier
+        )
+
+    @pytest.mark.parametrize(
+        "event_handlers_sample_list",
+        ["rrss.test.remove_all"],
+        indirect=True,
+    )
+    def test_remove_all_by_registrant(self, event_handlers_sample_list):
+        event_name = "rrss.test.remove_all"
+        self.mgr.add_event(event_name)
+
+        for handler in event_handlers_sample_list:
+            self.mgr.add_handler(handler)
+
+        registrant = event_handlers_sample_list[0].registrant
+        self.mgr.remove_all_by_registrant(registrant)
+
+        assert not any(
+            self.mgr._try_get_single_mgr(event_name).has(registrant, h.identifier)
+            for h in event_handlers_sample_list
+        )
