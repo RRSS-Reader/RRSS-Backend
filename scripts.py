@@ -3,12 +3,28 @@ from pydantic import BaseModel
 from typing import TypedDict
 import fire
 from loguru import logger
+from sys import stdout
+
+logger.remove()
+
+# Add a new sink with a simple format: [time] [level] message
+logger.add(
+    stdout,
+    format=">>> <green>{time:HH:mm:ss}</green> | <level>{level}</level> | {message}",
+    level="DEBUG",
+)
 
 SCRIPTS: dict[str, str | list[str]] = {
     "code.format": "black .",
-    "code.check": "mypy " ".",
+    "code.type_check": "mypy " ".",
     "code.test": "pytest tests",
+    "code.check": [
+        "command:code.format",
+        "command:code.type_check",
+        "command:code.test",
+    ],
     "env.export": "conda env export --no-builds -f environment.yml",
+    "env.update": "conda update --update-all",
 }
 
 
@@ -33,6 +49,7 @@ def run_command(name: str):
         if c.startswith("command:"):
             logger.info(f"Try running nested command: {c}")
             run_command(c[8:])
+            print("\n")
         else:
             # resolve command and run
             res = subprocess.run(c)
