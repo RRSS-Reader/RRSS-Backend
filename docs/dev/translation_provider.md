@@ -10,7 +10,7 @@ When we talking about _frontend_ and _backend_ of RRSS translation system:
 
 ## Frontend
 
-Frontend should use packages [i18next](https://www.i18next.com/) as the frontend translation framework.
+Frontend should use package [i18next](https://www.i18next.com/) as the frontend translation framework.
 
 Additionally, `i18next-fetch-backend` could be used to retrieve translation resources from backend endpoints.
 
