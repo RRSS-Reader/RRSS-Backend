@@ -12,6 +12,9 @@ Dot-separated snake-case variable name format.
 E.g.: `rrss.sys.plug.rate_limiter`
 """
 
+RID = RRSSEntityIdField
+"""Alias for `RRSSEntityIdField`"""
+
 
 class RRSSEntityIdKeyDict[VT](dict[RRSSEntityIdField, VT]):
     """
