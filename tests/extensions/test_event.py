@@ -82,7 +82,7 @@ class TestEventSingleHandler:
         mgr.add(CustomEventHandler())
 
         # check .has() method
-        assert mgr.has("rrss.test.another")
+        assert mgr.has("rrss.test.another", None)
         assert mgr.has("rrss.test.another", "sync.1")
         assert mgr.has("rrss.test.another", "async.1") == False
 
@@ -95,10 +95,10 @@ class TestEventSingleHandler:
         # remove handler
         mgr.remove("rrss.test.another", "sync.1")
         # registrant should no longer exists after all handlers being removed
-        assert mgr.has("rrss.test.another") == False
+        assert mgr.has("rrss.test.another", None) == False
 
         # check handlers() generator
-        assert len([i for i in mgr.handlers()]) == len(event_handlers_sample_list)
+        assert len([i for i in mgr.list()]) == len(event_handlers_sample_list)
 
     async def test_event_emitting(self, anyio_backend):
         ret1: int = 0
@@ -153,13 +153,13 @@ class TestEventManager:
         self.mgr = EventManager()
 
     def test_add_event(self):
-        self.mgr.add_event("rrss.test.test_event")
-        assert self.mgr.has_event("rrss.test.test_event")
+        self.mgr.add_registry("rrss.test.test_event")
+        assert self.mgr.add_registry("rrss.test.test_event")
 
     def test_add_duplicate_event(self):
-        self.mgr.add_event("rrss.test.test_event")
-        self.mgr.add_event("rrss.test.test_event")
-        assert self.mgr.has_event("rrss.test.test_event")
+        self.mgr.add_registry("rrss.test.test_event")
+        self.mgr.add_registry("rrss.test.test_event")
+        assert self.mgr.has_registry("rrss.test.test_event")
 
     @pytest.mark.parametrize(
         "event_handlers_sample_list",
@@ -169,22 +169,23 @@ class TestEventManager:
     def test_add_handler(self, event_handlers_sample_list):
         event_name = "rrss.test.handler_test"
 
-        self.mgr.add_event(event_name)
+        self.mgr.add_registry(event_name)
 
         for handler in event_handlers_sample_list:
-            self.mgr.add_handler(handler)
+            handler = cast(EventHandler, handler)
+            self.mgr.add_data(handler)
 
-        assert self.mgr.has_event(event_name)
+        assert self.mgr.has_registry(event_name)
 
         for handler in event_handlers_sample_list:
             handler = cast(event_types.EventHandler, handler)
-            assert self.mgr._try_get_single_mgr(event_name).has(
+            assert self.mgr._try_get_registry(event_name).has(
                 handler.registrant, handler.identifier
             )
 
     async def test_emit_event(self, anyio_backend):
         event_name = "rrss.test.emit_test"
-        self.mgr.add_event(event_name)
+        self.mgr.add_registry(event_name)
 
         ret = {"value": 0}
 
@@ -200,7 +201,7 @@ class TestEventManager:
                 ret["value"] = event.data + 1
 
         handler = EventHandler1()
-        self.mgr.add_handler(handler)
+        self.mgr.add_data(handler)
 
         await self.mgr.emit(event_types.Event(event_name=event_name, data=10))
         assert ret["value"] == 11
@@ -212,19 +213,19 @@ class TestEventManager:
     )
     def test_remove_handler(self, event_handlers_sample_list):
         event_name = "rrss.test.remove_handler"
-        self.mgr.add_event(event_name)
+        self.mgr.add_registry(event_name)
 
         handler = event_handlers_sample_list[0]
         handler = cast(event_types.EventHandler, handler)
-        self.mgr.add_handler(handler)
+        self.mgr.add_data(handler)
 
-        assert self.mgr._try_get_single_mgr(event_name).has(
+        assert self.mgr._try_get_registry(event_name).has(
             handler.registrant, handler.identifier
         )
 
-        self.mgr.remove_handler(handler)
+        self.mgr.remove_data(handler)
 
-        assert not self.mgr._try_get_single_mgr(event_name).has(
+        assert not self.mgr._try_get_registry(event_name).has(
             handler.registrant, handler.identifier
         )
 
@@ -235,15 +236,15 @@ class TestEventManager:
     )
     def test_remove_all_by_registrant(self, event_handlers_sample_list):
         event_name = "rrss.test.remove_all"
-        self.mgr.add_event(event_name)
+        self.mgr.add_registry(event_name)
 
         for handler in event_handlers_sample_list:
-            self.mgr.add_handler(handler)
+            self.mgr.add_data(handler)
 
         registrant = event_handlers_sample_list[0].registrant
-        self.mgr.remove_all_by_registrant(registrant)
+        self.mgr.remove_data(registrant)
 
         assert not any(
-            self.mgr._try_get_single_mgr(event_name).has(registrant, h.identifier)
+            self.mgr._try_get_registry(event_name).has(registrant, h.identifier)
             for h in event_handlers_sample_list
         )

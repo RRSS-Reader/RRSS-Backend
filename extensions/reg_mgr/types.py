@@ -1,30 +1,46 @@
-from typing import Protocol, Iterable, runtime_checkable, override
+from typing import Protocol, Iterable, ClassVar, runtime_checkable, override
 from abc import abstractmethod
 
-from pydantic import BaseModel, validate_call
+from pydantic import BaseModel, validate_call, computed_field
 
 from utils import types as util_types
 
 from . import errors as regmgr_errs
 
 
-@runtime_checkable
-class RegisterableData(Protocol):
+class RegisterableData(BaseModel):
     """Protocol of registerable data"""
 
-    registry_id: util_types.RID
+    __reg_mgr_type_name__: ClassVar[str] = "Registerable"
     """
-    ID of the registry in the registry group, which registry this item belongs to.
+    Readable name of this classes, usually used in `__repr__()` function returns.
     
-    E.g.:
-        In event system, `registry_id` could be considered the name of the event.
+    This name is usually based on the actual system built upon registry manager.
+    For example, if an event management system uses this `reg_mgr` package, then 
+    there could be an `EventHandler` class which is `RegisterableData` and has 
+    `__reg_mgr_type_name__ = "RRSSEventHandler"`
     """
+
+    @computed_field  # type: ignore
+    @property
+    @abstractmethod
+    def registry_id(self) -> util_types.RID:
+        """
+        ID of the registry in the registry group, which registry this item belongs to.
+
+        E.g.:
+            In event system, `registry_id` could be considered the name of the event.
+        """
+        ...
 
     registrant: util_types.RID
     identifier: util_types.RID
 
+    def __repr__(self):
+        return f"<{self.__reg_mgr_type_name__}[{self.registry_id}] reg={self.registrant} id={self.identifier}>"
 
-class PriorityRegisterableData(RegisterableData, Protocol):
+
+class PriorityRegisterableData(RegisterableData):
     """Registerable data with priority"""
 
     priority: float = 0
@@ -136,6 +152,9 @@ class ListRegistryManager[DType: RegisterableData](RegistryManager[DType]):
 
     @override
     def remove(self, registrant, identifier):
+
+        removed = False
+
         for i in range(len(self.registries)):
             cur_reg = self.registries[i]
 
@@ -145,14 +164,17 @@ class ListRegistryManager[DType: RegisterableData](RegistryManager[DType]):
                 if identifier is None:
                     self.registries.pop(i)
                     i -= 1
+                    removed = True
                 # identifier matched, remove
                 elif cur_reg.identifier == identifier:
                     self.registries.pop(i)
                     i -= 1
+                    removed = True
 
-        raise regmgr_errs.RRSSRegistryDataNotFound().register_info(
-            registrant=registrant, identifier=identifier
-        )
+        if not removed:
+            raise regmgr_errs.RRSSRegistryDataNotFound().register_info(
+                registrant=registrant, identifier=identifier
+            )
 
     @override
     def list(self):
@@ -171,7 +193,7 @@ class PriorityListRegistryManager[DType: PriorityRegisterableData](
 
 
 class RegistryGroupManager[T_RegMgr: RegistryManager](Protocol):
-    group_manager_dict: dict[util_types.RID, RegistryManager]
+    group_manager_dict: dict[util_types.RID, T_RegMgr]
     """
     Dict to store a group of registry manager
     
@@ -179,7 +201,7 @@ class RegistryGroupManager[T_RegMgr: RegistryManager](Protocol):
     - Val: A `RegistryManager` instance
     """
 
-    reg_mgr_cls: type[RegistryManager]
+    reg_mgr_cls: type[T_RegMgr]
     """
     Class type object used to create new `RegistryManager` instance
     
@@ -187,10 +209,12 @@ class RegistryGroupManager[T_RegMgr: RegistryManager](Protocol):
     currently not supported.
     """
 
-    def __init__(self, reg_mgr_cls: type[RegistryManager]):
+    def __init__(self, reg_mgr_cls: type[T_RegMgr]):
         super().__init__()
         self.reg_mgr_cls = reg_mgr_cls
+        self.group_manager_dict = dict()
 
+    @validate_call
     def add_registry(self, registry_id: util_types.RID):
         """
         Add a new registry with specified registry id.
@@ -220,6 +244,7 @@ class RegistryGroupManager[T_RegMgr: RegistryManager](Protocol):
         except regmgr_errs.RRSSRegistryNotFound:
             return False
 
+    @validate_call
     def remove_registry(self, registry_id: util_types.RID):
         """
         Remove a registry from this registry group.
