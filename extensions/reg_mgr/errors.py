@@ -1,9 +1,6 @@
 from exceptions.general import RRSSBaseError
 
 
-__all__ = ["RRSSRegistryNotFound"]
-
-
 class RRSSRegMgrBaseError(RRSSBaseError):
 
     def register_info(
@@ -16,6 +13,11 @@ class RRSSRegMgrBaseError(RRSSBaseError):
     def registry_info(self, registry_id):
         self.registry_id = registry_id
         return self
+
+
+class RRSSRegistryDataNotFound(RRSSRegMgrBaseError):
+    def __init__(self, title="registry_data_not_found"):
+        super().__init__(title)
 
 
 class RRSSRegistryNotFound(RRSSRegMgrBaseError):

@@ -91,7 +91,9 @@ class RegistryManager[DType: RegisterableData](Protocol):
         for reg in self:
             if reg.registrant == registrant and reg.identifier == identifier:
                 return reg
-        raise regmgr_errs.RRSSRegistryNotFound
+        raise regmgr_errs.RRSSRegistryDataNotFound().register_info(
+            registrant=registrant, identifier=identifier
+        )
 
     def has(
         self, registrant: util_types.RID, identifier: util_types.RID | None
@@ -148,7 +150,9 @@ class ListRegistryManager[DType: RegisterableData](RegistryManager[DType]):
                     self.registries.pop(i)
                     i -= 1
 
-        raise regmgr_errs.RRSSRegistryNotFound
+        raise regmgr_errs.RRSSRegistryDataNotFound().register_info(
+            registrant=registrant, identifier=identifier
+        )
 
     @override
     def list(self):
@@ -174,17 +178,40 @@ class RegistryGroupManager[T_RegMgr: RegistryManager](Protocol):
     - Key: Name of the registry
     - Val: A `RegistryManager` instance
     """
+
     reg_mgr_cls: type[RegistryManager]
+    """
+    Class type object used to create new `RegistryManager` instance
+    
+    Different types of `RegistryManager` in one group manager is 
+    currently not supported.
+    """
 
     def __init__(self, reg_mgr_cls: type[RegistryManager]):
         super().__init__()
         self.reg_mgr_cls = reg_mgr_cls
 
     def add_registry(self, registry_id: util_types.RID):
+        """
+        Add a new registry with specified registry id.
+
+        Instance is auto-generated using the specified `reg_mgr_cls` class type.
+        """
         if registry_id in self.group_manager_dict:
             raise regmgr_errs.RRSSDuplicatedRegGroupName
 
         self.group_manager_dict[registry_id] = self.reg_mgr_cls(registry_id=registry_id)
+
+    def add_registry_instance(self, registry: T_RegMgr) -> None:
+        """
+        Directly add an registry manager instance to this group manager.
+        """
+        if self.has_registry(registry_id=registry.registry_id):
+            raise regmgr_errs.RRSSDuplicatedRegistry().registry_info(
+                registry_id=registry.registry_id
+            )
+
+        self.group_manager_dict[registry.registry_id] = registry
 
     def has_registry(self, registry_id: util_types.RID):
         try:
