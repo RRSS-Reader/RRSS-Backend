@@ -158,7 +158,8 @@ class TestEventManager:
 
     def test_add_duplicate_event(self):
         self.mgr.add_registry("rrss.test.test_event")
-        self.mgr.add_registry("rrss.test.test_event")
+        with pytest.raises():
+            self.mgr.add_registry("rrss.test.test_event")
         assert self.mgr.has_registry("rrss.test.test_event")
 
     @pytest.mark.parametrize(
@@ -223,7 +224,7 @@ class TestEventManager:
             handler.registrant, handler.identifier
         )
 
-        self.mgr.remove_data(handler)
+        self.mgr.remove_data(handler.registrant, handler.identifier)
 
         assert not self.mgr._try_get_registry(event_name).has(
             handler.registrant, handler.identifier
@@ -236,13 +237,13 @@ class TestEventManager:
     )
     def test_remove_all_by_registrant(self, event_handlers_sample_list):
         event_name = "rrss.test.remove_all"
-        self.mgr.add_registry(event_name)
+        self.mgr.add_registry(registry_id=event_name)
 
         for handler in event_handlers_sample_list:
             self.mgr.add_data(handler)
 
         registrant = event_handlers_sample_list[0].registrant
-        self.mgr.remove_data(registrant)
+        self.mgr.remove_data(registrant, None)
 
         assert not any(
             self.mgr._try_get_registry(event_name).has(registrant, h.identifier)

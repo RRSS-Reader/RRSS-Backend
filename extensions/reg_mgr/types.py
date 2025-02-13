@@ -9,7 +9,7 @@ from . import errors as regmgr_errs
 
 
 class RegisterableData(BaseModel):
-    """Protocol of registerable data"""
+    """Base class of registerable data"""
 
     __reg_mgr_type_name__: ClassVar[str] = "Registerable"
     """
@@ -21,17 +21,13 @@ class RegisterableData(BaseModel):
     `__reg_mgr_type_name__ = "RRSSEventHandler"`
     """
 
-    @computed_field  # type: ignore
-    @property
-    @abstractmethod
-    def registry_id(self) -> util_types.RID:
-        """
-        ID of the registry in the registry group, which registry this item belongs to.
+    registry_id: util_types.RID
+    """
+    ID of the registry in the registry group, which registry this item belongs to.
 
-        E.g.:
-            In event system, `registry_id` could be considered the name of the event.
-        """
-        ...
+    E.g.:
+        In event system, `registry_id` could be considered the name of the event.
+    """
 
     registrant: util_types.RID
     identifier: util_types.RID
@@ -52,7 +48,8 @@ class PriorityRegisterableData(RegisterableData):
 
 class RegistryManager[DType: RegisterableData](Protocol):
     """
-    Protocol of RegistryManager classes
+    Protocol of RegistryManager classes, all registry manager should implement this protocol
+    in order to be used by `RegistryGroupManager`
 
     RegistryManager is responsible for managing a collection of `RegisterableData`
     and provide the corresponding methods to manage these data items.
@@ -141,8 +138,9 @@ class ListRegistryManager[DType: RegisterableData](RegistryManager[DType]):
     registries: list[DType]
 
     @validate_call
-    def __init__(self, group_name: util_types.RRSSEntityIdField):
-        self.registry_id = group_name
+    def __init__(self, registry_id: util_types.RRSSEntityIdField):
+        self.registry_id = registry_id
+        self.registries = list()
 
     @override
     def add(self, data):
@@ -155,21 +153,22 @@ class ListRegistryManager[DType: RegisterableData](RegistryManager[DType]):
 
         removed = False
 
-        for i in range(len(self.registries)):
-            cur_reg = self.registries[i]
+        cur_idx = 0
+        while cur_idx < len(self.registries):
+            cur_reg = self.registries[cur_idx]
 
             # match registrant
             if cur_reg.registrant == registrant:
                 # no identifier specified, remove
                 if identifier is None:
-                    self.registries.pop(i)
-                    i -= 1
+                    self.registries.pop(cur_idx)
                     removed = True
                 # identifier matched, remove
                 elif cur_reg.identifier == identifier:
-                    self.registries.pop(i)
-                    i -= 1
+                    self.registries.pop(cur_idx)
                     removed = True
+                else:
+                    cur_idx += 1
 
         if not removed:
             raise regmgr_errs.RRSSRegistryDataNotFound().register_info(
@@ -192,8 +191,8 @@ class PriorityListRegistryManager[DType: PriorityRegisterableData](
         self.registries.sort(key=lambda x: x.priority, reverse=True)
 
 
-class RegistryGroupManager[T_RegMgr: RegistryManager](Protocol):
-    group_manager_dict: dict[util_types.RID, T_RegMgr]
+class RegistryGroupManager[T_RegMgr: RegistryManager]:
+    registries_dict: dict[util_types.RID, T_RegMgr]
     """
     Dict to store a group of registry manager
     
@@ -201,9 +200,10 @@ class RegistryGroupManager[T_RegMgr: RegistryManager](Protocol):
     - Val: A `RegistryManager` instance
     """
 
-    reg_mgr_cls: type[T_RegMgr]
+    _reg_mgr_cls: type[T_RegMgr]
     """
     Class type object used to create new `RegistryManager` instance
+    when `add_registry()` get called.
     
     Different types of `RegistryManager` in one group manager is 
     currently not supported.
@@ -211,8 +211,8 @@ class RegistryGroupManager[T_RegMgr: RegistryManager](Protocol):
 
     def __init__(self, reg_mgr_cls: type[T_RegMgr]):
         super().__init__()
-        self.reg_mgr_cls = reg_mgr_cls
-        self.group_manager_dict = dict()
+        self._reg_mgr_cls = reg_mgr_cls
+        self.registries_dict = dict()
 
     @validate_call
     def add_registry(self, registry_id: util_types.RID):
@@ -220,11 +220,14 @@ class RegistryGroupManager[T_RegMgr: RegistryManager](Protocol):
         Add a new registry with specified registry id.
 
         Instance is auto-generated using the specified `reg_mgr_cls` class type.
-        """
-        if registry_id in self.group_manager_dict:
-            raise regmgr_errs.RRSSDuplicatedRegGroupName
 
-        self.group_manager_dict[registry_id] = self.reg_mgr_cls(registry_id=registry_id)
+        Raises:
+            `RRSSDuplicatedRegistryId`
+        """
+        if registry_id in self.registries_dict:
+            raise regmgr_errs.RRSSDuplicatedRegistryId
+
+        self.registries_dict[registry_id] = self._reg_mgr_cls(registry_id=registry_id)
 
     def add_registry_instance(self, registry: T_RegMgr) -> None:
         """
@@ -235,7 +238,7 @@ class RegistryGroupManager[T_RegMgr: RegistryManager](Protocol):
                 registry_id=registry.registry_id
             )
 
-        self.group_manager_dict[registry.registry_id] = registry
+        self.registries_dict[registry.registry_id] = registry
 
     def has_registry(self, registry_id: util_types.RID):
         try:
@@ -253,23 +256,33 @@ class RegistryGroupManager[T_RegMgr: RegistryManager](Protocol):
         before removing it.
         """
         self._try_get_registry(registry_id=registry_id)
-        self.group_manager_dict.pop(registry_id)
+        self.registries_dict.pop(registry_id)
 
     def _try_get_registry(self, registry_id: util_types.RID):
         try:
-            return self.group_manager_dict[registry_id]
+            return self.registries_dict[registry_id]
         except KeyError:
             raise regmgr_errs.RRSSRegistryNotFound().registry_info(
                 registry_id=registry_id
             )
 
+    def registries(self):
+        yield from self.registries_dict.values()
+
     def add_data(self, data: RegisterableData):
         reg = self._try_get_registry(data.registry_id)
         reg.add(data=data)
 
-    def remove_data(self, data: RegisterableData):
-        reg = self._try_get_registry(data.registry_id)
-        reg.remove(data.registrant, data.identifier)
+    def remove_data(
+        self,
+        registrant: util_types.RID,
+        identifier: util_types.RID | None,
+    ):
+        for registry_mgr in self.registries():
+            try:
+                registry_mgr.remove(registrant=registrant, identifier=identifier)
+            except regmgr_errs.RRSSRegistryDataNotFound:
+                pass
 
     def get_data(self, data: RegisterableData):
         reg = self._try_get_registry(data.registry_id)
@@ -284,5 +297,5 @@ class RegistryGroupManager[T_RegMgr: RegistryManager](Protocol):
         return reg.list()
 
     def list_all_data(self):
-        for reg in self.group_manager_dict.values():
+        for reg in self.registries_dict.values():
             yield from reg.list()

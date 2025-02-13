@@ -37,6 +37,11 @@ class RRSSDuplicatedRegistry(RRSSRegMgrBaseError):
         super().__init__(title)
 
 
-class RRSSDuplicatedRegGroupName(RRSSRegMgrBaseError):
-    def __init__(self, title="duplicated_reg_group_name"):
+class RRSSDuplicatedRegistryId(RRSSRegMgrBaseError):
+    """
+    Raise when trying to add two registries with same `registry_id`
+    in a registry group manager.
+    """
+
+    def __init__(self, title="duplicate_registry_id"):
         super().__init__(title)

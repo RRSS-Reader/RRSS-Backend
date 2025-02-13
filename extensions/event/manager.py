@@ -14,12 +14,14 @@ from utils.asyncers import ensure_asyncify
 
 class _SingleEventMgr[EventDataType](ListRegistryManager[EventHandler[EventDataType]]):
 
-    event_name: RRSSEntityIdField
-    """Name of the event this `SingleEventManager` instance should process"""
-
     @property
-    def registty_id(self):
-        return self.event_name
+    def event_name(self):
+        """Name of the event this `SingleEventManager` instance should process"""
+        return self.registry_id
+
+    @event_name.setter
+    def event_name(self, event_name: util_types.RID):
+        self.registry_id = event_name
 
     async def emit(self, event: Event[EventDataType]) -> None:
         """
@@ -36,9 +38,9 @@ class _SingleEventMgr[EventDataType](ListRegistryManager[EventHandler[EventDataT
         _logger.info(f"Emit event: {self.event_name!r}")
 
         async with create_task_group() as task_group:
-            for handler_model in self:
-                task_group.soonify(ensure_asyncify(handler_model.handler))(event=event)
-                _logger.debug(f"Handler added to task: {handler_model}")
+            for handler_data in self:
+                task_group.soonify(ensure_asyncify(handler_data.handler))(event=event)
+                _logger.debug(f"Handler added to task: {handler_data}")
 
         _logger.info(f"Event emit finished: {self.event_name!r}")
 
@@ -57,7 +59,7 @@ class EventManager(RegistryGroupManager[_SingleEventMgr]):
             event:
                 The event object. This object is used to:
                 1. Determine which event will be emitted.
-                2. Be passed to handlers as the only parameter.
+                2. Passed to handlers as the only parameter.
 
                 This event object will be validated using Pydantic.
 
