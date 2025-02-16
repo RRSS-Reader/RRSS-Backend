@@ -68,4 +68,9 @@ You can create your own `RegistryManager` class based on your specific needs. Ho
 
 ### Custom Exceptions
 
-# TODO
+- `registry_not_found`
+- `registry_data_not_found`
+- `duplicated_registry_data`
+- `duplicated_registry`
+
+Above are 4 exceptions could be customized currently.

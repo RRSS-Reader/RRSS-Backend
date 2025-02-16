@@ -1,6 +1,6 @@
 from typing import Annotated, Protocol, runtime_checkable, Any, ClassVar, override
 from abc import abstractmethod
-from pydantic import BaseModel, Field, ConfigDict
+from pydantic import BaseModel, Field, ConfigDict, computed_field
 from utils.types import RID
 
 from extensions import reg_mgr
@@ -22,12 +22,6 @@ class Event[EventDataType](BaseModel):
 
 class EventHandler[HandlerDataType](reg_mgr.RegisterableData):
     __reg_mgr_type_name__ = "EventHandler"
-
-    event_name: RID
-
-    @property
-    def registry_id(self):
-        return self.event_name
 
     def handler(self, event: Event[HandlerDataType]) -> Any:
         """Actual handler method to be called when event received"""

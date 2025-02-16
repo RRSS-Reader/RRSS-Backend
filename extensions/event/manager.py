@@ -14,14 +14,9 @@ from utils.asyncers import ensure_asyncify
 
 class _SingleEventMgr[EventDataType](ListRegistryManager[EventHandler[EventDataType]]):
 
-    @property
-    def event_name(self):
-        """Name of the event this `SingleEventManager` instance should process"""
-        return self.registry_id
-
-    @event_name.setter
-    def event_name(self, event_name: util_types.RID):
-        self.registry_id = event_name
+    __reg_mgr_custom_exceptions__ = (
+        event_errors._event_system_reg_mgr_custom_exceptions_config_dict
+    )
 
     async def emit(self, event: Event[EventDataType]) -> None:
         """
@@ -35,17 +30,21 @@ class _SingleEventMgr[EventDataType](ListRegistryManager[EventHandler[EventDataT
             About sync-to-async conversion, check out `ensure_asyncify()` function.
         """
 
-        _logger.info(f"Emit event: {self.event_name!r}")
+        _logger.info(f"Emit event: {self.registry_id!r}")
 
         async with create_task_group() as task_group:
             for handler_data in self:
                 task_group.soonify(ensure_asyncify(handler_data.handler))(event=event)
                 _logger.debug(f"Handler added to task: {handler_data}")
 
-        _logger.info(f"Event emit finished: {self.event_name!r}")
+        _logger.info(f"Event emit finished: {self.registry_id!r}")
 
 
 class EventManager(RegistryGroupManager[_SingleEventMgr]):
+
+    __reg_mgr_custom_exceptions__ = (
+        event_errors._event_system_reg_mgr_custom_exceptions_config_dict
+    )
 
     def __init__(self):
         super().__init__(reg_mgr_cls=_SingleEventMgr)

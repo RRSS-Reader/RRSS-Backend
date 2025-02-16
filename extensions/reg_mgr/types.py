@@ -1,7 +1,7 @@
-from typing import Protocol, Iterable, ClassVar, runtime_checkable, override
+from typing import Protocol, Iterable, ClassVar, runtime_checkable, override, TypedDict
 from abc import abstractmethod
 
-from pydantic import BaseModel, validate_call, computed_field
+from pydantic import BaseModel, validate_call, computed_field, ConfigDict
 
 from utils import types as util_types
 
@@ -11,22 +11,26 @@ from . import errors as regmgr_errs
 class RegisterableData(BaseModel):
     """Base class of registerable data"""
 
+    model_config = ConfigDict(from_attributes=True)
+
     __reg_mgr_type_name__: ClassVar[str] = "Registerable"
     """
-    Readable name of this classes, usually used in `__repr__()` function returns.
-    
-    This name is usually based on the actual system built upon registry manager.
-    For example, if an event management system uses this `reg_mgr` package, then 
-    there could be an `EventHandler` class which is `RegisterableData` and has 
-    `__reg_mgr_type_name__ = "RRSSEventHandler"`
+    A human-readable name representing the type of this class, 
+    typically **used in the `__repr__()` method for descriptive output**.
+
+    This name is often **contextualized based on the specific system or framework utilizing the registry manager**. 
+    For instance, the RRSS event system is built upon this `reg_mgr` package, in which, `EventHandler` 
+    (which inherits from `RegisterableData`) define this as `__reg_mgr_type_name__ = "RRSSEventHandler"` 
+    to reflect its role within that system.
     """
 
     registry_id: util_types.RID
     """
-    ID of the registry in the registry group, which registry this item belongs to.
-
-    E.g.:
-        In event system, `registry_id` could be considered the name of the event.
+    The unique identifier for the registry within a registry group,
+    indicating which registry this item belongs to.
+    
+    One usage of this field is for `RegistryGroupManager.add_data()` to know 
+    which registry this registerable data belongs to.
     """
 
     registrant: util_types.RID
@@ -46,6 +50,21 @@ class PriorityRegisterableData(RegisterableData):
     """
 
 
+class RegistryManagerCustomErrorConfig(TypedDict):
+    registry_not_found: type[regmgr_errs.RRSSRegistryNotFound]
+    duplicated_registry: type[regmgr_errs.RRSSDuplicatedRegistry]
+    registry_data_not_found: type[regmgr_errs.RRSSRegistryDataNotFound]
+    duplicated_registry_data: type[regmgr_errs.RRSSDuplicatedRegistryData]
+
+
+_default_reg_mgr_custom_error_config_dict: RegistryManagerCustomErrorConfig = {
+    "registry_not_found": regmgr_errs.RRSSRegistryNotFound,
+    "duplicated_registry": regmgr_errs.RRSSDuplicatedRegistry,
+    "registry_data_not_found": regmgr_errs.RRSSRegistryDataNotFound,
+    "duplicated_registry_data": regmgr_errs.RRSSDuplicatedRegistryData,
+}
+
+
 class RegistryManager[DType: RegisterableData](Protocol):
     """
     Protocol of RegistryManager classes, all registry manager should implement this protocol
@@ -57,9 +76,30 @@ class RegistryManager[DType: RegisterableData](Protocol):
     Used by `RegistryGroupManager`
     """
 
-    @validate_call
-    def __init__(self, registry_id: util_types.RID):
+    __reg_mgr_custom_exceptions__: RegistryManagerCustomErrorConfig
+    """
+    Store the custom exceptions type info that will be raised when registry-related error occurred
+    
+    Default exceptions are in `.errors` module
+    """
+
+    @validate_call(config=ConfigDict(arbitrary_types_allowed=True))
+    def __init__(
+        self,
+        registry_id: util_types.RID,
+        custom_exceptions: RegistryManagerCustomErrorConfig | None = None,
+    ):
         self.registry_id = registry_id
+
+        # init custom exception config
+        try:
+            self.__reg_mgr_custom_exceptions__
+        except:
+            self.__reg_mgr_custom_exceptions__ = (
+                _default_reg_mgr_custom_error_config_dict
+            )
+        if custom_exceptions is not None:
+            self.__reg_mgr_custom_exceptions__ = custom_exceptions
 
     registry_id: util_types.RID
     """ID of this registry manager, usually used by `RegistryGroupManager`"""
@@ -138,14 +178,16 @@ class ListRegistryManager[DType: RegisterableData](RegistryManager[DType]):
     registries: list[DType]
 
     @validate_call
-    def __init__(self, registry_id: util_types.RRSSEntityIdField):
-        self.registry_id = registry_id
+    def __init__(self, registry_id, custom_exceptions=None):
+        super().__init__(registry_id=registry_id, custom_exceptions=custom_exceptions)
         self.registries = list()
 
     @override
     def add(self, data):
         if self.has(data.registrant, data.identifier):
-            raise regmgr_errs.RRSSDuplicatedRegistry
+            raise self.__reg_mgr_custom_exceptions__[
+                "duplicated_registry_data"
+            ]().register_info(registrant=data.registrant, identifier=data.identifier)
         self.registries.append(data)
 
     @override
@@ -169,11 +211,13 @@ class ListRegistryManager[DType: RegisterableData](RegistryManager[DType]):
                     removed = True
                 else:
                     cur_idx += 1
+            else:
+                cur_idx += 1
 
         if not removed:
-            raise regmgr_errs.RRSSRegistryDataNotFound().register_info(
-                registrant=registrant, identifier=identifier
-            )
+            raise self.__reg_mgr_custom_exceptions__[
+                "registry_data_not_found"
+            ]().register_info(registrant=registrant, identifier=identifier)
 
     @override
     def list(self):
@@ -209,34 +253,62 @@ class RegistryGroupManager[T_RegMgr: RegistryManager]:
     currently not supported.
     """
 
-    def __init__(self, reg_mgr_cls: type[T_RegMgr]):
+    __reg_mgr_custom_exceptions__: RegistryManagerCustomErrorConfig
+    """
+    Store the custom exceptions type info that will be raised when registry-related error occurred
+    
+    Default exceptions are in `.errors` module
+    """
+
+    def __init__(
+        self,
+        reg_mgr_cls: type[T_RegMgr],
+        custom_exceptions: RegistryManagerCustomErrorConfig | None = None,
+    ):
         super().__init__()
         self._reg_mgr_cls = reg_mgr_cls
         self.registries_dict = dict()
+
+        # init custom error config
+        try:
+            self.__reg_mgr_custom_exceptions__
+        except:
+            self.__reg_mgr_custom_exceptions__ = (
+                _default_reg_mgr_custom_error_config_dict
+            )
+        if custom_exceptions is not None:
+            self.__reg_mgr_custom_exceptions__ = custom_exceptions
 
     @validate_call
     def add_registry(self, registry_id: util_types.RID):
         """
         Add a new registry with specified registry id.
-
         Instance is auto-generated using the specified `reg_mgr_cls` class type.
 
-        Raises:
-            `RRSSDuplicatedRegistryId`
-        """
-        if registry_id in self.registries_dict:
-            raise regmgr_errs.RRSSDuplicatedRegistryId
+        Note:
+            The custom exceptions config will be passed to the newly created registry.
 
-        self.registries_dict[registry_id] = self._reg_mgr_cls(registry_id=registry_id)
+        Raises:
+            `RRSSDuplicatedRegistry`
+        """
+        if self.has_registry(registry_id=registry_id):
+            raise self.__reg_mgr_custom_exceptions__[
+                "duplicated_registry"
+            ]().registry_info(registry_id=registry_id)
+
+        self.registries_dict[registry_id] = self._reg_mgr_cls(
+            registry_id=registry_id,
+            custom_exceptions=self.__reg_mgr_custom_exceptions__,
+        )
 
     def add_registry_instance(self, registry: T_RegMgr) -> None:
         """
         Directly add an registry manager instance to this group manager.
         """
         if self.has_registry(registry_id=registry.registry_id):
-            raise regmgr_errs.RRSSDuplicatedRegistry().registry_info(
-                registry_id=registry.registry_id
-            )
+            raise self.__reg_mgr_custom_exceptions__[
+                "duplicated_registry"
+            ]().registry_info(registry_id=registry.registry_id)
 
         self.registries_dict[registry.registry_id] = registry
 
@@ -262,14 +334,18 @@ class RegistryGroupManager[T_RegMgr: RegistryManager]:
         try:
             return self.registries_dict[registry_id]
         except KeyError:
-            raise regmgr_errs.RRSSRegistryNotFound().registry_info(
-                registry_id=registry_id
-            )
+            raise self.__reg_mgr_custom_exceptions__[
+                "registry_not_found"
+            ]().registry_info(registry_id=registry_id)
 
     def registries(self):
+        """Iterate over all registries managed by this group manager"""
         yield from self.registries_dict.values()
 
     def add_data(self, data: RegisterableData):
+        """
+        Add new data to one of the registry in this group manager.
+        """
         reg = self._try_get_registry(data.registry_id)
         reg.add(data=data)
 

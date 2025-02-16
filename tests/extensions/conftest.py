@@ -23,7 +23,7 @@ def invalid_p_event_handler_list() -> list[type]:
         extra_field: int = 4
 
     class TestClass3:
-        event_name: str = "some_name"
+        registry_id: str = "some_name"
         registrant: str = ""
         identifier: str = ""
         handler: int = 1
@@ -35,15 +35,20 @@ def invalid_p_event_handler_list() -> list[type]:
 @pytest.fixture
 def valid_p_event_handler_list() -> list[type]:
     class TestClass1:
-        event_name: str = "some_name"
+        registry_id: str = "some_name"
         registrant: str = "some_thing"
         identifier: str = "some_other.id"
 
         def handler(self, some_value):
             pass
 
+    class WithoutHandlerFunc:
+        registry_id: str = "some_name"
+        registrant: str = "some_thing"
+        identifier: str = "some_other.id"
+
     class TestClass2:
-        event_name: str = "some_name"
+        registry_id: str = "some_name"
         registrant: str = "sdf"
         identifier: str = "dfhs"
         extra: int = 3
@@ -51,7 +56,13 @@ def valid_p_event_handler_list() -> list[type]:
         def handler(self):
             pass
 
-    return [TestClass1, TestClass2]
+    class HasHandlerButNotFunc:
+        registry_id: str = "some_name"
+        registrant: str = "some_thing"
+        identifier: str = "some_other.id"
+        handler: int = 3
+
+    return [TestClass1, TestClass2, HasHandlerButNotFunc, WithoutHandlerFunc]
 
 
 @pytest.fixture
@@ -61,7 +72,7 @@ def event_handlers_sample_list(request) -> list[EventHandler]:
     class EventHandler1(EventHandler):
         def __init__(self):
             super().__init__(
-                event_name=event_name, registrant="rrss.test", identifier="sync.1"
+                registry_id=event_name, registrant="rrss.test", identifier="sync.1"
             )
 
         def handler(self, data):
@@ -70,7 +81,7 @@ def event_handlers_sample_list(request) -> list[EventHandler]:
     class EventHandler2(EventHandler):
         def __init__(self):
             super().__init__(
-                event_name=event_name, registrant="rrss.test", identifier="async.1"
+                registry_id=event_name, registrant="rrss.test", identifier="async.1"
             )
 
         async def handler(self, data):

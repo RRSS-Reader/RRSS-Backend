@@ -9,8 +9,10 @@ from extensions.event.types import Event, EventHandler
 from extensions.event.manager import _SingleEventMgr, EventManager
 
 
+@pytest.mark.timeout(2)
 class TestEventType:
     def test_invalid_event_name_regex(self, invalid_dsk_names):
+        print("test")
         for name in invalid_dsk_names:
             with pytest.raises(ValidationError):
                 ins = event_types.Event(
@@ -37,6 +39,7 @@ class TestEventType:
                 )
 
 
+@pytest.mark.timeout(2)
 class TestEventHandlerType:
     def test_invalid_handler_name(self, invalid_p_event_handler_list) -> None:
 
@@ -49,6 +52,7 @@ class TestEventHandlerType:
             event_types.EventHandler.model_validate(cls())
 
 
+@pytest.mark.timeout(2)
 class TestEventSingleHandler:
     def test_event_adding(self, event_handlers_sample_list) -> None:
         """
@@ -62,7 +66,7 @@ class TestEventSingleHandler:
             mgr.add(event)
 
         # try add duplicated handler
-        with pytest.raises(event_errs.DuplicatedHandlerID):
+        with pytest.raises(event_errs.DuplicatedHandler):
             mgr.add(event_handlers_sample_list[0])
 
         # custom new handler
@@ -70,7 +74,7 @@ class TestEventSingleHandler:
 
             def __init__(self):
                 super().__init__(
-                    event_name="some_name",
+                    registry_id="some_name",
                     registrant="rrss.test.another",
                     identifier="sync.1",
                 )
@@ -108,7 +112,7 @@ class TestEventSingleHandler:
         class EventHandler1(event_types.EventHandler[int]):
             def __init__(self):
                 super().__init__(
-                    event_name="some_name",
+                    registry_id="some_name",
                     registrant="rrss.test",
                     identifier="rrss.test.1",
                 )
@@ -120,7 +124,7 @@ class TestEventSingleHandler:
         class EventHandler2(event_types.EventHandler[int]):
             def __init__(self):
                 super().__init__(
-                    event_name="some_name",
+                    registry_id="some_name",
                     registrant="rrss.test",
                     identifier="rrss.test.2",
                 )
@@ -154,11 +158,11 @@ class TestEventManager:
 
     def test_add_event(self):
         self.mgr.add_registry("rrss.test.test_event")
-        assert self.mgr.add_registry("rrss.test.test_event")
+        assert self.mgr.has_registry("rrss.test.test_event")
 
     def test_add_duplicate_event(self):
         self.mgr.add_registry("rrss.test.test_event")
-        with pytest.raises():
+        with pytest.raises(event_errs.DuplicatedEvent):
             self.mgr.add_registry("rrss.test.test_event")
         assert self.mgr.has_registry("rrss.test.test_event")
 
@@ -193,7 +197,7 @@ class TestEventManager:
         class EventHandler1(event_types.EventHandler[int]):
             def __init__(self):
                 super().__init__(
-                    event_name=event_name,
+                    registry_id=event_name,
                     registrant="rrss.test",
                     identifier="rrss.test.1",
                 )

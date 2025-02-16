@@ -43,7 +43,7 @@ dependencies:
   - pydantic-core=2.27.1
   - pygments=2.15.1
   - pysocks=1.7.1
-  - pytest=7.4.4
+  - pytest=8.3.4
   - python=3.13.1
   - python_abi=3.13
   - requests=2.32.3
@@ -72,7 +72,7 @@ dependencies:
   - wheel=0.44.0
   - win32_setctime=1.1.0
   - win_inet_pton=1.1.0
-  - xz=5.4.6
+  - xz=5.6.4
   - zipp=3.21.0
   - zlib=1.2.13
 prefix: C:\Users\17561\.conda\envs\rrss
